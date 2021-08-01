@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="              http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd              http://camel.apache.org/schema/blueprint https://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+    <bean class="redis.clients.jedis.JedisShardInfo" id="JedshardInfo">
+        <argument index="0" value="localhost"/>
+        <argument index="1" value="6379"/>
+        <property name="password" value="a-very-complex-password-here"/>
+    </bean>
+    <!--
+	<bean factory-method="getConnectionFactory"
+        factory-ref="RedisConfiguration" id="redisConnectionFactory">
+        <property name="password" value="a-very-complex-password-here"/>
+    </bean>
+	-->
+    <bean
+        class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" id="redisConnectionFactory">
+        <property name="usePool" value="true"/>
+        <property name="useSsl" value="false"/>
+        <property name="shardInfo" ref="JedshardInfo"/>
+    </bean>
+    <bean class="com.mycompany.RedisConnectionTestProcessor" id="JedisConnectionProcessor"/>
+    <camelContext id="cbr-example-context" xmlns="http://camel.apache.org/schema/blueprint">
+        <route id="cbr-route">
+            <from id="_fromtimer" uri="timer://foo?delay=-1&amp;repeatCount=1"/>
+            <log id="_logJedis" message="Receiving redis with jedis"/>
+            <setHeader headerName="CamelRedis.Command" id="setCommand">
+                <simple>SET</simple>
+            </setHeader>
+            <setHeader headerName="CamelRedis.Key" id="_setHeader0">
+                <simple>TEST123</simple>
+            </setHeader>
+            <setHeader headerName="CamelRedis.Value" id="_setHeaderValue">
+                <simple>ISTANBUL</simple>
+            </setHeader>
+            <to id="_toRedisSET" uri="spring-redis://a:1?connectionFactory=#redisConnectionFactory&amp;exchangePattern=InOut"/>
+            <setHeader headerName="CamelRedis.Command" id="getCommand">
+                <simple>GET</simple>
+            </setHeader>
+            <setHeader headerName="CamelRedis.Key" id="_setHeader1">
+                <simple>TEST123</simple>
+            </setHeader>
+            <to id="_toRedisGET" uri="spring-redis://a:1?connectionFactory=#redisConnectionFactory&amp;exchangePattern=InOut"/>
+            <log id="_log1" loggingLevel="INFO" message="Body Value: ${body}"/>
+            <process id="_processref" ref="JedisConnectionProcessor"/>
+            <!--
+			<to id="_toRedis" uri="spring-redis://localhost:6379?command=PING&amp;connectionFactory=#redisConnectionFactory"/>
+			<log id="_log2" message="Result: ${body}"/>
+            -->
+            <!--
+			<choice id="_choice1">
+                <when id="_when1">
+                    <xpath id="_xpath1">/order/customer/country = 'UK'</xpath>
+                    <log id="_log2" message="Sending order ${file:name} to the UK"/>
+                    <to id="_to1" uri="file:work/cbr/output/uk"/>
+                </when>
+                <when id="_when2">
+                    <xpath id="_xpath2">/order/customer/country = 'US'</xpath>
+                    <log id="_log3" message="Sending order ${file:name} to the US"/>
+                    <to id="_to2" uri="file:work/cbr/output/us"/>
+                </when>
+                <otherwise id="_otherwise1">
+                    <log id="_log4" message="Sending order ${file:name} to another country"/>
+                    <to id="_to3" uri="file:work/cbr/output/others"/>
+                </otherwise>
+            </choice>
+            <log id="_log5" message="Done processing ${file:name}"/>
+		 -->
+        </route>
+        <route id="cbr-route-2">
+            <from id="_fromtimer2" uri="timer://foo?delay=5000&amp;repeatCount=1"/>
+            <log id="_logJedis2" message="Receiving redis with jedis 2"/>
+            <setHeader headerName="CamelRedis.Command" id="_setCommand2">
+                <simple>GET</simple>
+            </setHeader>
+            <setHeader headerName="CamelRedis.Key" id="_setHeader2">
+                <simple>TEST123</simple>
+            </setHeader>
+            <to id="_toRedisSET2" uri="spring-redis://a:1?connectionFactory=#redisConnectionFactory&amp;exchangePattern=InOut"/>
+            <log id="_log2" loggingLevel="INFO" message="Body Value-2: ${body}"/>
+        </route>
+    </camelContext>
+</blueprint>
